@@ -8,6 +8,13 @@
 #include <Metro.h>
 #include <LiquidCrystal.h>
 
+const static uint8_t A0 = 14;
+const static uint8_t A1 = 15;
+const static uint8_t A2 = 16;
+const static uint8_t A3 = 17;
+const static uint8_t A4 = 18;
+const static uint8_t A5 = 19;
+
 // --- define ---
 #define wait_on_delay 			5*1000
 #define before_sirene_delay 5*1000
@@ -20,7 +27,7 @@
 // --- setup PIR & Alarm --- 
 #define pirPin 11 
 #define alarmPin 12
-#define relayPin 14
+#define relayPin A0
 
 // --- types ---
 enum type_alarmState  {
@@ -41,6 +48,44 @@ Metro wait_on_timer       = Metro(wait_on_delay);
 Metro before_sirene_timer = Metro(before_sirene_delay);
 Metro ring_sirene_timer   = Metro(ring_sirene_delay);
 Password pwd = Password("123");   // définition du mot de passe
+
+struct AlarmSettings
+{
+  byte magic;
+  char alarmPassword1[PasswordLength_Max];
+//  char alarmPassword2[PasswordLength_Max];
+//  char alarmPassword3[PasswordLength_Max];
+//  char alarmPassword4[PasswordLength_Max];
+  char menuPassword[PasswordLength_Max];
+  unsigned int keypadDebounceTime;
+  unsigned int lcdBacklightTime;
+  unsigned int beforeTurnOnDelay;
+  unsigned int beforeAlarmDelay;
+  unsigned int alarmStatOutCount;
+  unsigned int alarmStatInCount;
+  unsigned int alarmStatTamperCount;
+  unsigned int alarmStatFireCount;
+}
+settings =
+{
+  SettingsMagic, // magic
+  "1111", // alarmPassword1,
+  "0000", // menuPassword
+  80,     // keypadDebounceTime
+  60000,  // lcdBacklightTime
+  30000,   // beforeTurnOnDelay
+  15000,   // beforeAlarmDelay
+  0xFFFFFFFF, // alarmOutMask - all outputs are enabled
+  0xFFFFFFFF, // alarmInMask - all inputs are enabled
+  0xFFFFFFFF, // alarmTamperMask - all tampers are enabled
+  0xFFFFFFFF, // alarmFireMask - all fire inputs are enabled
+  0, // alarmStatOutCount
+  0, // alarmStatInCount
+  0, // alarmStatTamperCount
+  0, // alarmFireCount
+};
+
+
 
 // --- setup Keypad --- 
 char keys[ROWS][COLS] =                                              //
@@ -201,6 +246,29 @@ void loop(){
 	alarmState = next_alarmState;
 }
 
+// enum type_alarmState  {
+// 	off,				// system idle
+// 	wait_on,		// delay before running (delai de sortie maison)
+// 	on, 				// system is running
+// 	detection,	// movement detected
+// 	before_sirene,// delay before sirene (delai d'entrée dans maison) 
+// 	ring_sirene // sirene is ringing
+// 	};
 
+void setState(const type_alarmState _newState)
+{
+	switch(currState)
+  {
+    case off:
+      leave_off();
+      break;  
+    case on:
+      leave_on();
+      break;
+	
+}
+case off:
+  leave_off();
+  break;
 
 
