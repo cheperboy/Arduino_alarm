@@ -1,16 +1,17 @@
 
 
-// #include "../libraries/Metro/Metro.h"
-// #include "../libraries/Password/Password.h"
-// #include "../libraries/Keypad/Keypad.h"
-// #include "../libraries/SerialLCD/SerialLCD.h"
-// #include "/Applications/Arduino.app/Contents/Resources/Java/libraries/SoftwareSerial/SoftwareSerial.h"
+//#include "../libraries/Metro/Metro.h"
+//#include "../libraries/Password/Password.h"
+//#include "../libraries/Keypad/Keypad.h"
+//#include "../libraries/SerialLCD/SerialLCD.h"
+//#include "/Applications/Arduino.app/Contents/Resources/Java/libraries/SoftwareSerial/SoftwareSerial.h"
 
-#include <Password.h> // http://www.arduino.cc/playground/uploads/Code/Password.zip
-#include <Keypad.h>   // http://www.arduino.cc/playground/uploads/Code/keypad.zip
-#include <Metro.h>
-#include <SerialLCD.h>
-#include <SoftwareSerial.h>
+ #include <Password.h> // http://www.arduino.cc/playground/uploads/Code/Password.zip
+ #include <Keypad.h>   // http://www.arduino.cc/playground/uploads/Code/keypad.zip
+ #include <Metro.h>
+ #include <SerialLCD.h>
+ #include <SoftwareSerial.h>
+// #include <myLCD.h>
 
 
 // --- define ---
@@ -91,22 +92,6 @@ void set_sirene(boolean value){
 
 void send_sms(){}
 
-void set_lcd(char* line1, char* line2){
-  slcd.setCursor(0, 0);
-  slcd.print("                ");
-  slcd.setCursor(0, 0);
-  slcd.print(line1);
-}
-void set_lcd_pin(){
-  slcd.setCursor(0, 1);
-  slcd.print(pwd.getPassword());
-//  printPositionPIN +=1;
-}
-void clear_lcd_pin(){
-  slcd.setCursor(0, 1);
-  slcd.print("                ");
-}
-
 boolean checkPassword(void){
   if (pwd.evaluate()){
  		pwd.reset();
@@ -151,23 +136,8 @@ void setup()
   Serial.begin(9600); // serial debug
   slcd.begin();
   set_lcd("demarrage", "");
-  delay(3000);
-  set_lcd("demarre", "");
+  delay(1500);
 }
-//
-
-
-faire commit 
-  indiquer modif librairie Password ajout getPassord
-checkPassword ne doit rien provoquer a part positionner une variable pwdOK
-cette variable est lue a la place de l'appel a checkPassword.
-  
-
-
-
-
-//
-
 
 void goto_off_if_password(){
 	if(checkPassword()) {

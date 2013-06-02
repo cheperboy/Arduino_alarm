@@ -8,9 +8,7 @@ void loop();
 #include "../libraries/Keypad/Keypad.h"
 #include "../libraries/SerialLCD/SerialLCD.h"
 #include "/Applications/Arduino.app/Contents/Resources/Java/libraries/SoftwareSerial/SoftwareSerial.h"
-// #include "/Applications/Arduino.app/Contents/Resources/Java/libraries/LiquidCrystal/LiquidCrystal.h"
 
-// #include <LiquidCrystal.h> ancien lcd sans shield serie
 // #include <Password.h> // http://www.arduino.cc/playground/uploads/Code/Password.zip
 // #include <Keypad.h>   // http://www.arduino.cc/playground/uploads/Code/keypad.zip
 // #include <Metro.h>
@@ -19,20 +17,20 @@ void loop();
 
 
 // --- define ---
-#define wait_on_delay 			5*1000
-#define before_sirene_delay 5*1000
-#define ring_sirene_delay 	5*1000
+#define wait_on_delay 	    10*1000
+#define before_sirene_delay 10*1000
+#define ring_sirene_delay   10*1000
 #define define_pwd					1
 
 #define ROWS 4 // clavier
 #define COLS 4 // clavier
 
 // --- setup serialLCD --- 
-#define lcdTX 8
-#define lcdRX 9
+#define lcdTX 10
+#define lcdRX 11
 
 // --- setup PIR & Alarm --- 
-#define pirPin 10
+#define pirPin 12
 #define alarmPin 17
 // #define relayPin 14
 
@@ -49,6 +47,7 @@ enum type_alarmState  {
 // --- variables ---
 type_alarmState alarmState      = off;
 type_alarmState next_alarmState = alarmState;
+uint8_t printPositionPIN = 0;
 boolean passCorrect             = false;
 boolean sensorDetection         = false;
 Metro wait_on_timer       = Metro(wait_on_delay);
@@ -96,8 +95,19 @@ void set_sirene(boolean value){
 void send_sms(){}
 
 void set_lcd(char* line1, char* line2){
-	slcd.print(line1);
-	// Serial.println(line1);
+  slcd.setCursor(0, 0);
+  slcd.print("                ");
+  slcd.setCursor(0, 0);
+  slcd.print(line1);
+}
+void set_lcd_pin(){
+  slcd.setCursor(0, 1);
+  slcd.print(pwd.getPassword());
+//  printPositionPIN +=1;
+}
+void clear_lcd_pin(){
+  slcd.setCursor(0, 1);
+  slcd.print("                ");
 }
 
 boolean checkPassword(void){
@@ -113,16 +123,22 @@ void kpdEvent (KeypadEvent Key)
   switch (kpd.getState())
   {
     case PRESSED :
-//      Serial.println(Key); // mj
+      Serial.println(Key); // mj
       switch (Key)
       {
         // appui sur '*' -> vérification de la saisie en cours
-        case '*' : checkPassword(); break;
+        case '*' : 
+          checkPassword(); 
+        break;
         // appui sur '#' -> réinitialisation de la saisie en cours
-        case '#' : pwd.reset(); break;
+        case '#' : 
+          pwd.reset();
+          clear_lcd_pin(); 
+        break;
         // sinon on ajoute le chiffre à la combinaison
         default  : pwd.append(Key); break;
       }
+    set_lcd_pin();
     default : break;
   }
 }
@@ -137,8 +153,9 @@ void setup()
   kpd.addEventListener(kpdEvent); //keypad event listener
   Serial.begin(9600); // serial debug
   slcd.begin();
-	set_lcd("demarrage", "");
-	// delay(3000);
+  set_lcd("bonjour", "");
+  delay(3000);
+  set_lcd("demarre", "");
 }
 
 void goto_off_if_password(){
