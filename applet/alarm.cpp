@@ -1,34 +1,40 @@
 #include "Arduino.h"
 void setup();
 void loop();
-// #include "../libraries/Metro/Metro.h"
-// #include "../libraries/Password/Password.h"
-// #include "../libraries/Keypad/Keypad.h"
+
+
+#include "../libraries/Metro/Metro.h"
+#include "../libraries/Password/Password.h"
+#include "../libraries/Keypad/Keypad.h"
+#include "../libraries/SerialLCD/SerialLCD.h"
+#include "/Applications/Arduino.app/Contents/Resources/Java/libraries/SoftwareSerial/SoftwareSerial.h"
 // #include "/Applications/Arduino.app/Contents/Resources/Java/libraries/LiquidCrystal/LiquidCrystal.h"
 
- #include <Password.h> // http://www.arduino.cc/playground/uploads/Code/Password.zip
- #include <Keypad.h>   // http://www.arduino.cc/playground/uploads/Code/keypad.zip
- #include <Metro.h>
- #include <LiquidCrystal.h>
-
-// --- cablage ---
-// keypad 2-9
-// lcd 10-13 et A0-A1
-// PIR A2
-// bip A3
+// #include <LiquidCrystal.h> ancien lcd sans shield serie
+// #include <Password.h> // http://www.arduino.cc/playground/uploads/Code/Password.zip
+// #include <Keypad.h>   // http://www.arduino.cc/playground/uploads/Code/keypad.zip
+// #include <Metro.h>
+// #include <SerialLCD.h>
+// #include <SoftwareSerial.h>
 
 
 // --- define ---
-#define wait_on_delay 			2*1000
-#define before_sirene_delay 2*1000
-#define ring_sirene_delay 	3*1000
+#define wait_on_delay 			5*1000
+#define before_sirene_delay 5*1000
+#define ring_sirene_delay 	5*1000
+#define define_pwd					1
 
 #define ROWS 4 // clavier
 #define COLS 4 // clavier
 
-// --- setup PIR --- 
-#define pirPin 11
-#define alarmPin 12
+// --- setup serialLCD --- 
+#define lcdTX 8
+#define lcdRX 9
+
+// --- setup PIR & Alarm --- 
+#define pirPin 10
+#define alarmPin 17
+// #define relayPin 14
 
 // --- types ---
 enum type_alarmState  {
@@ -45,12 +51,10 @@ type_alarmState alarmState      = off;
 type_alarmState next_alarmState = alarmState;
 boolean passCorrect             = false;
 boolean sensorDetection         = false;
-char keypad_entry               ;
-char code                       ;
 Metro wait_on_timer       = Metro(wait_on_delay);
 Metro before_sirene_timer = Metro(before_sirene_delay);
 Metro ring_sirene_timer   = Metro(ring_sirene_delay);
-Password pwd = Password("1");   // définition du mot de passe
+Password pwd = Password("123");   // définition du mot de passe
 
 // --- setup Keypad --- 
 char keys[ROWS][COLS] =                                              //
@@ -66,7 +70,9 @@ Keypad kpd = Keypad(makeKeymap(keys), rowPins, colPins, ROWS, COLS); //
 
 
 // --- setup LCD --- 
-//LiquidCrystal lcd(8, 9, 10, 11, 12, 13); 
+//LiquidCrystal lcd(8, 9, 10, 11, 12, 13); ancien lcd sans shield serie
+SerialLCD slcd(lcdTX,lcdRX);
+
 
 // --- fonctions ---
 boolean get_sensors(){
@@ -77,16 +83,21 @@ boolean get_sensors(){
 }
 
 void set_sirene(boolean value){
-	if (value == true)	{digitalWrite(alarmPin, HIGH);}
-	if (value == false)	{digitalWrite(alarmPin, LOW);}
+	if (value == true)	{
+		digitalWrite(alarmPin, HIGH);
+		// digitalWrite(relayPin, HIGH);
+	}
+	if (value == false)	{
+		digitalWrite(alarmPin, LOW);
+		// digitalWrite(relayPin, LOW);
+	}
 }
 
 void send_sms(){}
 
-void set_lcd(String line1, String line2){
-	Serial.println(line1);
-	// lcd.setCursor(1, 1);
-	// lcd.print(line1);
+void set_lcd(char* line1, char* line2){
+	slcd.print(line1);
+	// Serial.println(line1);
 }
 
 boolean checkPassword(void){
@@ -122,10 +133,12 @@ void setup()
 {
 	pinMode(alarmPin, OUTPUT);
 	pinMode(pirPin, INPUT);
+// 	pinMode(relayPin, OUTPUT);
   kpd.addEventListener(kpdEvent); //keypad event listener
   Serial.begin(9600); // serial debug
-  // lcd.begin(16, 2);	// set up the LCD's number of columns and rows: 
-	set_lcd("alarm off", "");
+  slcd.begin();
+	set_lcd("demarrage", "");
+	// delay(3000);
 }
 
 void goto_off_if_password(){
@@ -139,7 +152,7 @@ void goto_on_if_password(){
 		next_alarmState = wait_on;
 		set_lcd("wait_on", "");
 		wait_on_timer.reset();
-	}
+	}	
 }
 
 // --- loop ---
@@ -152,7 +165,7 @@ void loop(){
 			goto_on_if_password();
     	break;
 
-		// wait_on - delay before running (delai de sortie maison)
+		// wait_on - delay before on (delai de sortie maison)
 	  case wait_on:
 			set_sirene(false);
 			goto_off_if_password();
@@ -164,7 +177,6 @@ void loop(){
 
 		// on - system is running
 	  case on:
-			get_sensors();
 			set_sirene(false);
 			if(get_sensors()) {
 				next_alarmState = detection;
@@ -203,8 +215,10 @@ void loop(){
 				set_lcd("wait_on", "");			
 			}
 	    break;
-	
-	}		
+	}
 	alarmState = next_alarmState;
 }
+
+
+
 

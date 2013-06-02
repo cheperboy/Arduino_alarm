@@ -1,26 +1,35 @@
+
+
 // #include "../libraries/Metro/Metro.h"
 // #include "../libraries/Password/Password.h"
 // #include "../libraries/Keypad/Keypad.h"
-// #include "/Applications/Arduino.app/Contents/Resources/Java/libraries/LiquidCrystal/LiquidCrystal.h"
+// #include "../libraries/SerialLCD/SerialLCD.h"
+// #include "/Applications/Arduino.app/Contents/Resources/Java/libraries/SoftwareSerial/SoftwareSerial.h"
 
 #include <Password.h> // http://www.arduino.cc/playground/uploads/Code/Password.zip
 #include <Keypad.h>   // http://www.arduino.cc/playground/uploads/Code/keypad.zip
 #include <Metro.h>
-#include <LiquidCrystal.h>
+#include <SerialLCD.h>
+#include <SoftwareSerial.h>
+
 
 // --- define ---
-#define wait_on_delay 			5*1000
-#define before_sirene_delay 5*1000
-#define ring_sirene_delay 	5*1000
+#define wait_on_delay 	    10*1000
+#define before_sirene_delay 10*1000
+#define ring_sirene_delay   10*1000
 #define define_pwd					1
 
 #define ROWS 4 // clavier
 #define COLS 4 // clavier
 
+// --- setup serialLCD --- 
+#define lcdTX 10
+#define lcdRX 11
+
 // --- setup PIR & Alarm --- 
-#define pirPin 11 
-#define alarmPin 12
-#define relayPin 14
+#define pirPin 12
+#define alarmPin 17
+// #define relayPin 14
 
 // --- types ---
 enum type_alarmState  {
@@ -35,6 +44,7 @@ enum type_alarmState  {
 // --- variables ---
 type_alarmState alarmState      = off;
 type_alarmState next_alarmState = alarmState;
+uint8_t printPositionPIN = 0;
 boolean passCorrect             = false;
 boolean sensorDetection         = false;
 Metro wait_on_timer       = Metro(wait_on_delay);
@@ -56,7 +66,9 @@ Keypad kpd = Keypad(makeKeymap(keys), rowPins, colPins, ROWS, COLS); //
 
 
 // --- setup LCD --- 
-//LiquidCrystal lcd(8, 9, 10, 11, 12, 13); 
+//LiquidCrystal lcd(8, 9, 10, 11, 12, 13); ancien lcd sans shield serie
+SerialLCD slcd(lcdTX,lcdRX);
+
 
 // --- fonctions ---
 boolean get_sensors(){
@@ -69,18 +81,30 @@ boolean get_sensors(){
 void set_sirene(boolean value){
 	if (value == true)	{
 		digitalWrite(alarmPin, HIGH);
-		digitalWrite(relayPin, HIGH);
+		// digitalWrite(relayPin, HIGH);
 	}
 	if (value == false)	{
 		digitalWrite(alarmPin, LOW);
-		digitalWrite(relayPin, LOW);
+		// digitalWrite(relayPin, LOW);
 	}
 }
 
 void send_sms(){}
 
-void set_lcd(String line1, String line2){
-	Serial.println(line1);
+void set_lcd(char* line1, char* line2){
+  slcd.setCursor(0, 0);
+  slcd.print("                ");
+  slcd.setCursor(0, 0);
+  slcd.print(line1);
+}
+void set_lcd_pin(){
+  slcd.setCursor(0, 1);
+  slcd.print(pwd.getPassword());
+//  printPositionPIN +=1;
+}
+void clear_lcd_pin(){
+  slcd.setCursor(0, 1);
+  slcd.print("                ");
 }
 
 boolean checkPassword(void){
@@ -96,16 +120,22 @@ void kpdEvent (KeypadEvent Key)
   switch (kpd.getState())
   {
     case PRESSED :
-//      Serial.println(Key); // mj
+      Serial.println(Key); // mj
       switch (Key)
       {
         // appui sur '*' -> vérification de la saisie en cours
-        case '*' : checkPassword(); break;
+        case '*' : 
+          checkPassword(); 
+        break;
         // appui sur '#' -> réinitialisation de la saisie en cours
-        case '#' : pwd.reset(); break;
+        case '#' : 
+          pwd.reset();
+          clear_lcd_pin(); 
+        break;
         // sinon on ajoute le chiffre à la combinaison
         default  : pwd.append(Key); break;
       }
+    set_lcd_pin();
     default : break;
   }
 }
@@ -116,12 +146,28 @@ void setup()
 {
 	pinMode(alarmPin, OUTPUT);
 	pinMode(pirPin, INPUT);
-	pinMode(relayPin, OUTPUT);
+// 	pinMode(relayPin, OUTPUT);
   kpd.addEventListener(kpdEvent); //keypad event listener
   Serial.begin(9600); // serial debug
-  // lcd.begin(16, 2);	// set up the LCD's number of columns and rows: 
-	set_lcd("alarm off", "");
+  slcd.begin();
+  set_lcd("demarrage", "");
+  delay(3000);
+  set_lcd("demarre", "");
 }
+//
+
+
+faire commit 
+  indiquer modif librairie Password ajout getPassord
+checkPassword ne doit rien provoquer a part positionner une variable pwdOK
+cette variable est lue a la place de l'appel a checkPassword.
+  
+
+
+
+
+//
+
 
 void goto_off_if_password(){
 	if(checkPassword()) {
