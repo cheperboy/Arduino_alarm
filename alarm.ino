@@ -11,12 +11,10 @@
  #include <Metro.h>
  #include <SerialLCD.h>
  #include <SoftwareSerial.h>
-// #include <myLCD.h>
-
 
 // --- define ---
-#define wait_on_delay 	    10*1000
-#define before_sirene_delay 10*1000
+#define wait_on_delay 	    4*1000
+#define before_sirene_delay 4*1000
 #define ring_sirene_delay   10*1000
 #define define_pwd					1
 
@@ -43,15 +41,22 @@ enum type_alarmState  {
 	};
 
 // --- variables ---
+
+// --- programme ---
 type_alarmState alarmState      = off;
 type_alarmState next_alarmState = alarmState;
-uint8_t printPositionPIN = 0;
-boolean passCorrect             = false;
-boolean sensorDetection         = false;
 Metro wait_on_timer       = Metro(wait_on_delay);
 Metro before_sirene_timer = Metro(before_sirene_delay);
 Metro ring_sirene_timer   = Metro(ring_sirene_delay);
 Password pwd = Password("123");   // définition du mot de passe
+boolean passCorrect             = false;
+boolean sensorDetection         = false;
+
+// --- keypad ---
+uint8_t printPositionPIN = 0;
+boolean pressed_OK       = false;
+boolean pressed_CANCEL   = false;
+
 
 // --- setup Keypad --- 
 char keys[ROWS][COLS] =                                              //
@@ -72,59 +77,6 @@ SerialLCD slcd(lcdTX,lcdRX);
 
 
 // --- fonctions ---
-boolean get_sensors(){
-	if (HIGH == digitalRead(pirPin)) {
-		return true;
-	}
-	return false;
-}
-
-void set_sirene(boolean value){
-	if (value == true)	{
-		digitalWrite(alarmPin, HIGH);
-		// digitalWrite(relayPin, HIGH);
-	}
-	if (value == false)	{
-		digitalWrite(alarmPin, LOW);
-		// digitalWrite(relayPin, LOW);
-	}
-}
-
-void send_sms(){}
-
-boolean checkPassword(void){
-  if (pwd.evaluate()){
- 		pwd.reset();
-		return true;
-	}
-	return false;
-}
-
-void kpdEvent (KeypadEvent Key)
-{
-  switch (kpd.getState())
-  {
-    case PRESSED :
-      Serial.println(Key); // mj
-      switch (Key)
-      {
-        // appui sur '*' -> vérification de la saisie en cours
-        case '*' : 
-          checkPassword(); 
-        break;
-        // appui sur '#' -> réinitialisation de la saisie en cours
-        case '#' : 
-          pwd.reset();
-          clear_lcd_pin(); 
-        break;
-        // sinon on ajoute le chiffre à la combinaison
-        default  : pwd.append(Key); break;
-      }
-    set_lcd_pin();
-    default : break;
-  }
-}
-
 
 // --- setup ---
 void setup()
@@ -135,22 +87,29 @@ void setup()
   kpd.addEventListener(kpdEvent); //keypad event listener
   Serial.begin(9600); // serial debug
   slcd.begin();
-  set_lcd("demarrage", "");
-  delay(1500);
+  set_lcd_0("demarrage");
+  delay(1000);
 }
 
 void goto_off_if_password(){
-	if(checkPassword()) {
-		next_alarmState = off;
-		set_lcd("alarm off", "");
+	if (key_OK()){
+		if(checkPassword()) {
+			next_alarmState = off;
+			set_lcd_0("alarm off");
+			clear_lcd_pin();
+		}
 	}
 }
+
 void goto_on_if_password(){
-	if(checkPassword()) {
-		next_alarmState = wait_on;
-		set_lcd("wait_on", "");
-		wait_on_timer.reset();
-	}	
+	if (key_OK()){
+		if(checkPassword()) {
+			next_alarmState = wait_on;
+			set_lcd_0("wait_on");
+			clear_lcd_pin();
+			wait_on_timer.reset();
+		}	
+	}
 }
 
 // --- loop ---
@@ -168,7 +127,7 @@ void loop(){
 			set_sirene(false);
 			goto_off_if_password();
 			if(wait_on_timer.check() == 1){
-				set_lcd("alarm on", "");
+				set_lcd_0("alarm on");
 				next_alarmState = on;
 			}
     	break;
@@ -178,7 +137,7 @@ void loop(){
 			set_sirene(false);
 			if(get_sensors()) {
 				next_alarmState = detection;
-				set_lcd("detection", "");
+				set_lcd_0("detection");
 			}
 			goto_off_if_password();
     	break;
@@ -189,7 +148,7 @@ void loop(){
 			send_sms();
 			goto_off_if_password();
 			before_sirene_timer.reset();
-			next_alarmState = 	before_sirene;
+			next_alarmState = before_sirene;
 	    break;
 	
 		// before_sirene - delay before sirene (delai d'entrée dans maison) 
@@ -198,7 +157,7 @@ void loop(){
 			if(before_sirene_timer.check() == 1){
 				ring_sirene_timer.reset();
 				next_alarmState = ring_sirene;
-				set_lcd("sirene", "");
+				set_lcd_0("sirene");
 			}
 			goto_off_if_password();
 	    break;
@@ -210,7 +169,7 @@ void loop(){
 			if(ring_sirene_timer.check() == 1){
 				wait_on_timer.reset();
 				next_alarmState = wait_on;
-				set_lcd("wait_on", "");			
+				set_lcd_0("wait_on");	
 			}
 	    break;
 	}
